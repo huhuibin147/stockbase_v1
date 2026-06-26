@@ -12,3 +12,23 @@ node_modules/
 *~
 .idea/
 .vscode/
+
+# 数据文件
+data/
+*.db
+
+# 日志文件
+logs/
+
+# PID文件
+.pids/
+
+# 前端构建产物
+frontend/dist/
+
+# Python虚拟环境
+backend/venv/
+
+# yarn日志
+*.log
+yarn-error.log
