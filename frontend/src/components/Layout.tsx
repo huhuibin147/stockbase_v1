@@ -4,6 +4,11 @@ const navItems = [
   { path: '/', label: '仪表盘', icon: '📊' },
   { path: '/companies', label: '公司列表', icon: '🏢' },
   { path: '/news', label: '新闻中心', icon: '📰' },
+  { path: '/industry-chain', label: '产业链图谱', icon: '🔗' },
+  { path: '/industry-chain/companies', label: '公司索引', icon: '📋' },
+  { path: '/industry-chain/concepts', label: '概念索引', icon: '💡' },
+  { path: '/industry-chain/persons', label: '人物索引', icon: '👤' },
+  { path: '/industry-chain/events', label: '事件索引', icon: '📅' },
 ]
 
 export default function Layout() {

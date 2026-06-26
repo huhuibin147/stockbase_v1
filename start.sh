@@ -27,58 +27,60 @@ start_frontend() {
 }
 
 stop_backend() {
-    if [ -f "$PID_DIR/backend.pid" ]; then
-        PID=$(cat "$PID_DIR/backend.pid")
-        if kill -0 "$PID" 2>/dev/null; then
-            echo "停止后端服务 (PID: $PID)..."
-            kill "$PID"
-            rm "$PID_DIR/backend.pid"
-        else
-            echo "后端服务未运行"
-            rm "$PID_DIR/backend.pid"
-        fi
+    echo "停止后端服务..."
+    # 通过端口查找并杀死进程
+    PID=$(lsof -ti :8000 2>/dev/null)
+    if [ -n "$PID" ]; then
+        echo "找到后端进程 (PID: $PID)，正在停止..."
+        kill -9 $PID 2>/dev/null
+        echo "后端服务已停止"
     else
         echo "后端服务未运行"
     fi
+    # 清理PID文件
+    rm -f "$PID_DIR/backend.pid"
 }
 
 stop_frontend() {
-    if [ -f "$PID_DIR/frontend.pid" ]; then
-        PID=$(cat "$PID_DIR/frontend.pid")
-        if kill -0 "$PID" 2>/dev/null; then
-            echo "停止前端服务 (PID: $PID)..."
-            kill "$PID"
-            rm "$PID_DIR/frontend.pid"
-        else
-            echo "前端服务未运行"
-            rm "$PID_DIR/frontend.pid"
+    echo "停止前端服务..."
+    # 通过端口查找并杀死进程（尝试多个端口）
+    for PORT in 5173 5174 5175; do
+        PID=$(lsof -ti :$PORT 2>/dev/null)
+        if [ -n "$PID" ]; then
+            echo "找到前端进程 (端口: $PORT, PID: $PID)，正在停止..."
+            kill -9 $PID 2>/dev/null
         fi
-    else
-        echo "前端服务未运行"
-    fi
+    done
+    echo "前端服务已停止"
+    # 清理PID文件
+    rm -f "$PID_DIR/frontend.pid"
 }
 
 status() {
     echo "=== StockBase 服务状态 ==="
     
-    if [ -f "$PID_DIR/backend.pid" ]; then
-        PID=$(cat "$PID_DIR/backend.pid")
-        if kill -0 "$PID" 2>/dev/null; then
-            echo "后端: 运行中 (PID: $PID) - http://localhost:8000"
-        else
-            echo "后端: 未运行"
-        fi
+    # 通过端口检查后端状态
+    BACKEND_PID=$(lsof -ti :8000 2>/dev/null)
+    if [ -n "$BACKEND_PID" ]; then
+        echo "后端: 运行中 (PID: $BACKEND_PID) - http://localhost:8000"
     else
         echo "后端: 未运行"
     fi
     
-    if [ -f "$PID_DIR/frontend.pid" ]; then
-        PID=$(cat "$PID_DIR/frontend.pid")
-        if kill -0 "$PID" 2>/dev/null; then
-            echo "前端: 运行中 (PID: $PID) - http://localhost:5173"
-        else
-            echo "前端: 未运行"
+    # 通过端口检查前端状态
+    FRONTEND_PID=""
+    FRONTEND_PORT=""
+    for PORT in 5173 5174 5175; do
+        PID=$(lsof -ti :$PORT 2>/dev/null)
+        if [ -n "$PID" ]; then
+            FRONTEND_PID=$PID
+            FRONTEND_PORT=$PORT
+            break
         fi
+    done
+    
+    if [ -n "$FRONTEND_PID" ]; then
+        echo "前端: 运行中 (PID: $FRONTEND_PID) - http://localhost:$FRONTEND_PORT"
     else
         echo "前端: 未运行"
     fi
@@ -87,6 +89,10 @@ status() {
 case "$1" in
     start)
         mkdir -p "$SCRIPT_DIR/logs"
+        # 启动前先停止旧进程，避免端口冲突
+        stop_backend
+        stop_frontend
+        sleep 1
         start_backend
         start_frontend
         echo ""
